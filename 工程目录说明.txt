@@ -1,0 +1,14 @@
+--View
+	--lyq
+		--src 前端代码
+		--dist 后台的粗浅代码
+
+
+
+打开
+
+--View
+	--lyq
+		--dist 
+		下的index.html就可以看到效果，不过要建立数据库  数据库文档ty.sql也在dist文件下
+			

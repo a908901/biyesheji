@@ -1,0 +1,208 @@
+<template>
+    <div class="table">
+
+        <el-table :data="users" border style="width: 100%"  highlight-current-row  id="tableId">
+            <el-table-column prop="tdata" label="维修日期" sortable width="150">
+            </el-table-column>
+            <el-table-column prop="number" label="机器编号" width="120">
+            </el-table-column>
+            <el-table-column prop="jqname" label="机器名" >
+            </el-table-column>
+            <el-table-column prop="name" label="维修人" >
+            </el-table-column>
+            <el-table-column prop="tag" label="标签" width="120"
+                             :filters="[{ text: '修好', value: '修好' }, { text: '未修好', value: '未修好' }]"
+                             :filter-method="filterTag">
+                <template scope="scope">
+                    <el-tag :type="scope.row.tag === '修好' ? 'primary' : 'success'" close-transition>{{scope.row.tag}}
+                    </el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column label="操作" width="180" v-if="bianji==='符合身份'">
+                <template scope="scope">
+                    <el-button size="small"
+                               @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
+                    <el-button size="small" type="danger"
+                               @click="handleDel(scope.$index, scope.row)">删除</el-button>
+                </template>
+            </el-table-column>
+            <!--员工权限-->
+            <el-table-column label="操作" width="180" v-else>
+                <template scope="scope">
+                    <el-button size="small"
+                               @click="handleDetail(scope.$index, scope.row)">详情</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <div class="pagination">
+            <el-pagination
+                layout="prev, pager, next"
+                :total="1000">
+            </el-pagination>
+        </div>
+
+        <!--编辑界面-->
+        <el-dialog title="编辑" v-model="editFormVisible" :close-on-click-modal="false">
+            <el-form  :model="editForm" label-width="80px"  :rules="editFormRules" ref="editForm">
+                <el-form-item label="维修日期" prop="tdata">
+                    <el-input v-model="editForm.tdata" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="机器编号" prop="number">
+                    <el-input v-model="editForm.number" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="机器名字" prop="jqname">
+                    <el-input v-model="editForm.jqname" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="维修人" prop="name">
+                    <el-input v-model="editForm.name" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="是否修好" prop="tag">
+                    <el-input v-model="editForm.tag" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="详细说明">
+                    <el-input v-model="editForm.detailed" type="textarea" ></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer" >
+                <el-button @click.native="editFormVisible = false">取消</el-button>
+                <el-button @click.native="editSubmit()" type="primary">提交</el-button>
+            </div>
+        </el-dialog>
+        <!--详情页面-->
+        <el-dialog title="详情" v-model="detailFormVisible" :close-on-click-modal="false">
+            <el-form  :model="editForm" label-width="80px"  :rules="editFormRules" ref="editForm">
+                <el-form-item label="维修日期" prop="tdata">
+                    <el-input v-model="editForm.tdata" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="机器编号" prop="number">
+                    <el-input v-model="editForm.number" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="机器名字" prop="jqname">
+                    <el-input v-model="editForm.jqname" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="维修人" prop="name">
+                    <el-input v-model="editForm.name" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="是否修好" prop="tag">
+                    <el-input v-model="editForm.tag" auto-complete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="详细说明">
+                    <el-input v-model="editForm.detailed" type="textarea" ></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer"  scope="scope">
+                <el-button @click.native="detailFormVisible = false">取消</el-button>
+            </div>
+        </el-dialog>
+    </div>
+</template>
+
+<script type="text/jsx">
+    import util from '../../common/js/util'
+    import { getUserListPage, removeUser, batchRemoveUser, editUser, addUser } from '../../api/api.js';
+    import { XHRGet, XHRPost } from "../../api/ajax";
+    export default {
+        data() {
+            return {
+                bianji:"",
+                users: "",
+                //编辑界面数据
+                editForm: {
+                    id:1,
+                    tdata: '',
+                    number: '',
+                    jqname:'',
+                    name: -1,
+                    tag: 0,
+                    detaialed: ''
+                },
+                editFormRules: {
+                    name: [
+                        { required: true, message: '请输入姓名', trigger: 'blur' }
+                    ]
+                },
+                pageNum: 1,
+                editFormVisible: false,//编辑界面是否显示
+                detailFormVisible:false //详情页面是否显示
+            }
+
+        },
+        mounted: function () {
+            const _this = this;
+            let data = this.pageNum;
+            console.log(data);
+            XHRGet('./username.php',{username:localStorage.getItem('ms_username')} , function (res) {
+                _this.bianji = res.data;
+                console.log(_this.bianji)
+            });
+            XHRGet('./vuetable.php',{pageNum:data}, function (response) {
+                _this.users = response.data.data;
+                _this.total = response.data.pageCount;
+            });
+
+        },
+        methods: {
+            formatter(row, column) {
+                return row.address;
+            },
+            filterTag(value, row) {
+                return row.tag === value;
+            },
+
+            handleDel: function (index, row) {
+                this.editForm = Object.assign({}, row);
+                const _this = this;
+                this.$confirm('确认删除该记录吗?', '提示', {
+                    type: 'warning'
+                }).then(() => {
+                    let para = { id: row.id };
+                    this.users.splice(para,1);//删掉表的某一行
+                //传gid给后台
+                    let data01 = Object.assign({}, this.editForm);
+                    XHRGet('./vueP.php',data01, function (response) {
+                        console.log(response);
+                        _this.editFormVisible = false;
+                    })
+                    _this.$message({
+                        message: '删除成功',
+                        type: 'success'
+                    });
+                    history.go(0);
+                }).catch(() => {
+
+                });
+            },
+
+            //显示编辑页面
+            handleEdit: function (index,row) {
+                this.editFormVisible = true;
+                this.editForm = Object.assign({}, row);
+            },
+            //编辑提交的的时候页
+            editSubmit: function () {
+                this.$refs.editForm.validate((valid) => {
+                    if (valid) {
+                        const _this = this
+                        this.$confirm('确认提交吗？', '提示', {}).then(() => {
+                            let para = Object.assign({}, this.editForm);
+                            console.log(para)
+                            XHRGet('./vueD.php',para, function (response) {
+                                console.log(response);
+                                _this.editFormVisible = false;
+                                history.go(0)
+                            })
+
+                        });
+                    }
+                });
+            },
+            //显示详情页面
+            handleDetail: function (index, row) {
+                this.detailFormVisible = true;
+                this.editForm = Object.assign({}, row);
+                console.log(row)
+            }
+        }
+
+    }
+</script>
